@@ -4,7 +4,7 @@ import argparse
 import pandas as pd
 from loguru import logger
 from torch.profiler import profile, record_function, ProfilerActivity
-from utils import WEIGHT_SHAPES, ModelType, get_device_name, get_max_flops
+from utils import WEIGHT_SHAPES, ModelType, get_device_name, get_max_flops, get_kernel_total_time
 
 
 
@@ -27,11 +27,7 @@ def rand_weights(size_k : int, size_n : int, dtype, device : str, num : int):
     return weights
 
 
-def get_kernel_total_time(event):
-    if hasattr(event, 'self_device_time_total'):
-        return event.self_device_time_total
-    else:
-        return event.self_cuda_time_total
+
     
 def bench_torch_gemm(size_k: int, size_n: int, device: str="cuda"):
     weights = rand_weights(size_k, size_n, dtype=dtype, device=device, num=RUN_ITERATIONS)

@@ -5,6 +5,11 @@ def get_device_name():
     device_name = torch.cuda.get_device_name(0)
     return "_".join(device_name.split(" "))
 
+def get_kernel_total_time(event):
+    if hasattr(event, 'self_device_time_total'):
+        return event.self_device_time_total
+    else:
+        return event.self_cuda_time_total
 
 def get_max_flops(device_name):
     if "4090" in device_name:
