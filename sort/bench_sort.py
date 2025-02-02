@@ -20,6 +20,7 @@ INPUT_REPLICAS = 10 # use multiple inputs to avoid L2 cache hit
 @dataclass
 class BenchmarkTensors:
     input_tensor: torch.Tensor
+    dim: int
 
 # bench
 def bench_fns(label: str, sub_label: str, description: str,
@@ -45,23 +46,29 @@ def print_timers(timers: Iterable[TMeasurement]):
     compare.print()
 
 def sort_bench_fn(bt: BenchmarkTensors) -> Callable:
-    return lambda: torch.sort(input=bt.input_tensor)
+    return lambda: torch.sort(input=bt.input_tensor, dim=bt.dim)
 
 def bench_sort():
     timers = []
 
     label = "bench_sort"
-    configs = [i * int(1e7) for i in range(1, 11)]
+    configs = [
+        {"dim":0, "size_m":int(1e8), "size_n":1},
+        {"dim":1, "size_m":512, "size_n":128000},
+        {"dim":0, "size_m":512, "size_n":128000},
+    ]
     for cfg in configs:
-        
+        dim = cfg["dim"]
+        size_m = cfg["size_m"]
+        size_n = cfg["size_n"]
         bts = []
         for i in range(INPUT_REPLICAS):
-            input_tensor = torch.randint(0, cfg, (cfg,), dtype=torch.int32, device="cuda")
-            bt = BenchmarkTensors(input_tensor=input_tensor)
+            input_tensor = torch.randint(0, 2**31, (size_m, size_n), dtype=torch.int32, device="cuda")
+            bt = BenchmarkTensors(input_tensor=input_tensor, dim=dim)
             bts.append(bt)
         sub_label = f"input_{cfg}"
         timers.append(
-            bench_fns(label, sub_label, "bench_index_sort", [sort_bench_fn(bt) for bt in bts]))
+            bench_fns(label, sub_label, "bench_torch_sort", [sort_bench_fn(bt) for bt in bts]))
 
     return timers
 
